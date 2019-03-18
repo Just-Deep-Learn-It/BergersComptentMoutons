@@ -42,14 +42,11 @@ class CSRNet(nn.Module):
         x = F.interpolate(x, scale_factor=8, mode='bilinear', align_corners=True)
         return x
 
-def csrnet0(**kwargs):
-    model = CSRNet(**kwargs)
-    use_gpu = torch.cuda.is_available()
-    if use_gpu:
-        model = model.cuda()
+def csrnet0():
+    model = CSRNet()
     return model
 
 def csrnet(model_name, input_channels, pretrained=False):
     return{
-        'csrnet': csrnet0(input_channels=input_channels),
+        'csrnet': csrnet0(),
 }[model_name]
