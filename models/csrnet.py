@@ -50,3 +50,4 @@ def csrnet(model_name, input_channels, pretrained=False):
     return{
         'csrnet': csrnet0(),
 }[model_name]
+
