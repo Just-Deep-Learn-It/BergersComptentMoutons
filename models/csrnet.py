@@ -39,7 +39,7 @@ class CSRNet(nn.Module):
         x = F.relu(self.conv5(x))
         x = F.relu(self.conv6(x))
         x = F.relu(self.convfinal(x))
-        x = F.interpolate(x, scale_factor=8, mode='bilinear',align_corners=True)
+        x = F.interpolate(x, scale_factor=8, mode='bilinear', align_corners=True)
         return x
 
 def csrnet0(**kwargs):
