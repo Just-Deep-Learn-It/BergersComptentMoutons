@@ -14,3 +14,4 @@ def _get_model_instance(name):
     return {
         'csrnet': csrnet,
 }[name]
+
