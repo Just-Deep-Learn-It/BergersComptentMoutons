@@ -2,10 +2,6 @@ import torch.nn as nn
 import torchvision.models as models
 import torch.nn.functional as F
 import torch.nn.init as init
-from ShanghaiTechClass import ShanghaiTech
-from PIL import Image
-import imageio
-from toolbox import utils, metrics
 
 vgg16 = models.vgg16(pretrained=True)
 
