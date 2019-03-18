@@ -5,7 +5,7 @@ def get_model(args):
 
     print('Fetching model %s - %s ' % (args.arch, args.model_name))
     if args.arch == 'csrnet':
-        model = model_instance(args.model_name, args.num_classes, args.input_channels, args.pretrained)
+        model = model_instance(args.model_name)
     else:
         raise 'Model {} not available'.format(args.arch)
     return model
