@@ -6,7 +6,7 @@ import torch.nn.init as init
 vgg16 = models.vgg16(pretrained=True)
 
 def conv_backend(in_channels, out_channels):
-    return nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=2, dilation=2)
+    return nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=2, dilation=2).double()
 
 class CSRNet(nn.Module):
     
@@ -26,7 +26,7 @@ class CSRNet(nn.Module):
         init.normal_(self.conv5.weight,std=0.01)
         self.conv6 = conv_backend(128, 64)
         init.normal_(self.conv6.weight,std=0.01)
-        self.convfinal = nn.Conv2d(64, 1, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.convfinal = nn.Conv2d(64, 1, kernel_size=1, stride=1, padding=0, dilation=1).double()
         init.normal_(self.convfinal.weight,std=0.01)
         
     def forward(self,x):

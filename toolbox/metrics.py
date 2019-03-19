@@ -112,20 +112,9 @@ o.  )88b 888   .o8 888   888  888     888    .o o.  )88b
 
 
 def accuracy_regression(output, target):
-    mae = (output - target).sum().abs().mean() 
-    squared_mse = (output - target).sum().pow(2).mean()
+    mae = (output - target).sum((1,2,3)).abs().mean() 
+    squared_mse = (output - target).sum((1,2,3)).pow(2).mean()
     #mse = (output - target).sum().pow(2).mean().sqrt()
     count = output.sum()
     return mae.item(), squared_mse.item(), count.item()
-
-
-def fast_hist(pred, label, n):
-    k = (label >= 0) & (label < n)
-    return np.bincount(
-        n * label[k].astype(int) + pred[k], minlength=n ** 2).reshape(n, n)
-
-
-def per_class_iu(hist):
-    return np.diag(hist) / (hist.sum(1) + hist.sum(0) - np.diag(hist)+ 1e-10)
-
 

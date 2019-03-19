@@ -87,12 +87,13 @@ def load_checkpoint(args, model):
     print('Verifying if resume file exists')
     if os.path.exists(filename):
         print("=> loading checkpoint '{}'".format(args.resume))
+        print("DEBUGG", filename)
         checkpoint = torch.load(filename)
         start_epoch = checkpoint['epoch']
         best_score = checkpoint['best_score']
         best_epoch = checkpoint['best_epoch']
         exp_logger = checkpoint['exp_logger']
-        learning_rate = exp_logger.meters['hyperparams']['learning_rate'].val
+        learning_rate = args.lr #exp_logger.meters['hyperparams']['learning_rate'].val
         model.load_state_dict(checkpoint['state_dict'])
         print("=> loaded checkpoint '{}' (epoch {})"
             .format(filename, checkpoint['epoch']))

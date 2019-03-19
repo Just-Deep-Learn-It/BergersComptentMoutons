@@ -38,7 +38,7 @@ def train(args, train_loader, model, criterion, optimizer, logger, epoch,
         input, target = input.to(args.device).requires_grad_(), target.to(args.device)
         output = model(input)
 
-        loss = criterion(output, target)
+        loss = (1e7)*criterion(output, target).double()
         
         meters['loss'].update(loss.data.item(), n=batch_size)
         
@@ -52,22 +52,24 @@ def train(args, train_loader, model, criterion, optimizer, logger, epoch,
             mae, squared_mse, count = eval_score(output, target)
             meters['mae'].update(mae, n=batch_size)
             meters['squared_mse'].update(squared_mse,n=batch_size)
-
+            
 
         # measure elapsed time
         meters['batch_time'].update(time.time() - end, n=batch_size)
+        meters['epoch_time'].update( meters['batch_time'].val)
         end = time.time()
 
         if i % print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Time {batch_time.val:.3f} ({epoch_time.sum:.3f})\t'
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'LR {lr.val:.2e}\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'mae {mae.val:.3f} ({mae.avg:.3f})\t'
-                  'squared_mse {squared_mse.val:.3f} ({squared_mse.avg:.3f})'.format(
+                  'MAE {mae.val:.3f} ({mae.avg:.3f})\t'
+                  'MSE {mse:.3f} ({avg_mse:.3f})'.format(
                    epoch, i, len(train_loader), batch_time=meters['batch_time'],
-                   data_time=meters['data_time'], lr=meters_params['learning_rate'], loss=meters['loss'], mae=meters['mae'], squared_mse=meters['squared_mse']))
+                   epoch_time=meters['epoch_time'],
+                   data_time=meters['data_time'], lr=meters_params['learning_rate'], loss=meters['loss'], mae=meters['mae'], mse=np.sqrt(meters['squared_mse'].val),avg_mse = np.sqrt(meters['squared_mse'].avg)))
 
 
         if True == args.short_run:
@@ -107,14 +109,14 @@ def validate(args, val_loader, model, criterion, logger, epoch, eval_score=None,
     with torch.no_grad():
         for i, (input, target) in enumerate(val_loader):
             batch_size = input.size(0)
-
+            target = target[1]
             meters['data_time'].update(time.time()-end, n=batch_size)
         
             input, target = input.to(args.device).requires_grad_(), target.to(args.device)
             
             output = model(input)
 
-            loss = criterion(output, target)
+            loss = (1e7)*criterion(output, target)
             meters['loss'].update(loss.data.item(), n=batch_size)
 
             # measure accuracy and record loss
@@ -131,15 +133,14 @@ def validate(args, val_loader, model, criterion, logger, epoch, eval_score=None,
 
           
             if i % print_freq == 0:
-                print('Epoch: [{0}][{1}/{2}]\t'
+                print('Validation: [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                      'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                      'LR {lr.val:.2e}\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'MAE {mae.val:.3f} ({mae.avg:.3f})\t'
-                      'Squared MSE {squared_mse.val:.3f} ({squared_mse.avg:.3f})'.format(
-                       epoch, i, len(train_loader), batch_time=meters['batch_time'],
-                       data_time=meters['data_time'], lr=meters_params['learning_rate'], loss=meters['loss'], mae=meters['mae'], squared_mse=meters['squared_mse']))
+                      'MSE {mse:.3f} ({avg_mse:.3f})'.format(
+                        i, len(val_loader), batch_time=meters['batch_time'],
+                        loss=meters['loss'], mae=meters['mae'], 
+                        mse=np.sqrt(meters['squared_mse'].val),avg_mse =np.sqrt(meters['squared_mse'].avg)))
 
 
             if True == args.short_run:
@@ -149,7 +150,7 @@ def validate(args, val_loader, model, criterion, logger, epoch, eval_score=None,
 
 
 
-    print(' * Validation set: Average loss {:.4f}, MAE {:.3f}%, Squared MSE {:.3f}% \n'.format(meters['loss'].avg, meters['mae'].avg, meters['squared_mse'].avg))
+    print(' * Validation set: Average loss {:.4f}, MAE {:.3f}, MSE {:.3f} \n'.format(meters['loss'].avg, meters['mae'].avg, np.sqrt(meters['squared_mse'].avg)))
 
     logger.log_meters('val', n=epoch)
         
@@ -180,6 +181,7 @@ def test(args, eval_data_loader, model, criterion, epoch, eval_score=None,
         for i, (input, target) in enumerate(eval_data_loader):
             # print(input.size())
             batch_size = input.size(0)
+            target = target[1]
             meters['data_time'].update(time.time()-end, n=batch_size)
            
             input, target = input.to(args.device).requires_grad_(), target.to(args.device)
@@ -204,9 +206,10 @@ def test(args, eval_data_loader, model, criterion, epoch, eval_score=None,
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'MAE {mae.val:.3f} ({mae.avg:.3f})\t'
-                      'Squared MSE {squared_mse.val:.3f} ({squared_mse.avg:.3f})'.format(
+                      'MSE {mse:.3f} ({avg_mse:.3f})'.format(
                       i, len(eval_data_loader), batch_time=meters['batch_time'], loss=meters['loss'],
-                      mae=meters['mae'],squared_mse=meters['squared_mse']), flush=True)
+                      mae=meters['mae'],mse=np.sqrt(meters['squared_mse'].val),
+                       avg_mse = np.sqrt(meters['squared_mse'].avg), flush=True))
 
             if True == args.short_run:
                 if 12 == i:
@@ -214,9 +217,8 @@ def test(args, eval_data_loader, model, criterion, epoch, eval_score=None,
                     break    
 
 
-        print(' * Test set: Average loss {:.4f}, MAE {:.3f}%, Squared MSE {:.3f}% \n'.format(meters['loss'].avg, meters['mae'].avg, meters['squared_mse'].avg))
+        print(' * Test set: Average loss {:.4f}, MAE {:.3f}, MSE {:.3f} \n'.format(meters['loss'].avg, meters['mae'].avg, np.sqrt(meters['squared_mse'].avg)))
 
-    metrics.save_meters(meters, os.path.join(args.log_dir, 'test_results_ep{}.json'.format(epoch)), epoch)    
-    utils.save_res_list(res_list, os.path.join(args.res_dir, 'test_results_list_ep{}.json'.format(epoch)))    
+    metrics.save_meters(meters, os.path.join(args.log_dir, 'test_results_ep{}.json'.format(epoch)), epoch)        
 
 

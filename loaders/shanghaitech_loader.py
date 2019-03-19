@@ -35,7 +35,6 @@ class ShanghaiTechLoader(torch.utils.data.Dataset):
         self.targets=[]
         
         count=np.load(count_path)
-        idx=0
         for image_name in images_dir:
             image_path=os.path.join(data_dir,'images_cropped/',image_name)
             x = image_name.split('.jpg',1)[0].split('_')
@@ -52,9 +51,6 @@ class ShanghaiTechLoader(torch.utils.data.Dataset):
             self.counts.append(count[i+9*(num-1)])
             self.targets.append(density_map)
             
-            idx+=1
-            if idx>5:
-                break
                 
         self.data, self.targets= np.asarray(self.data, dtype=float) , np.asarray(self.targets, dtype=float)
         self.counts=np.asarray(self.counts, dtype=float)
