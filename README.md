@@ -5,6 +5,8 @@ The original ShanghaiTech datasets consists of large `.ppm` images of scenes wit
 
 The ShanghaiTech dataset can be found [here](https://github.com/desenzhou/ShanghaiTechDataset).
 
+Once downloaded and unzipped, put the path to the data (part_A) in the `Data_management.ipynb` notebook and run it to create the required folders, to generate the ground-truth density maps, to pre-process the images and density maps (cropping, flipping) and to split the training set in 90% of training and 10% of validation.
+
 ## Project structure
 
 The project is structured as following:
