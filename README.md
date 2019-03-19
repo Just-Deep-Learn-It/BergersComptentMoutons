@@ -1,7 +1,7 @@
 # CSRNet
 
 ## Data
-The original ShanghaiTech datasets consists of large `.ppm` images of scenes with bounding box coordinates for the traffic signs. We use here a post-processed variant where signs have already been cropped out from their corresponding images and resized to 32 x 32. 
+The original ShanghaiTech datasets consists of `.jpg` images of scenes with crowds in the `images` folder and the associated `.mat` files in the `ground-truth` folder. These `.mat` files contain the 2d coordinates of each head for the image they correspond to.
 
 The ShanghaiTech dataset can be found [here](https://github.com/desenzhou/ShanghaiTechDataset).
 
@@ -35,12 +35,11 @@ Experiments can be launched by calling `commander.py` and a set of input argumen
 
 Here is a typical launch command and some comments:
 
-- `python commander.py --name csrnet0 --root-dir ~/BergersComptentMoutons/ShanghaiTech/part_A --batch-size 128 --optimizer sgd --scheduler ReduceLROnPlateau --lr 1e-6 --lr-decay 0.5 --step 15 --epochs 50 --workers 4 --crop-size 32 --criterion crossentropy --tensorboard`
-  + this experiment is on the _gtsrb_ dataset which can be found in `--root-dir/gtsrb` trained over _LeNet5_. It optimizes with _sgd_ with initial learning rate (`--lr`) of `1e-3` which is decayed by half whenever the `--scheduler` _ReduceLRonPlateau_ does not see an improvement in the validation accuracy for more than `--step` epochs. Input images are of size 32  (`--crop-size`). In addition it saves intermediate results to `--tensorboard`.
+- `python commander.py --name csrnet0 --root-dir ~/BergersComptentMoutons/ShanghaiTech/part_A --batch-size 128 --optimizer sgd --scheduler ReduceLROnPlateau --lr 1e-6 --lr-decay 0.5 --step 15 --epochs 50 --workers 4 --criterion crossentropy --tensorboard`
+  + this experiment is on the _gtsrb_ dataset which can be found in `--root-dir/gtsrb` trained over _LeNet5_. It optimizes with _sgd_ with initial learning rate (`--lr`) of `1e-3` which is decayed by half whenever the `--scheduler` _ReduceLRonPlateau_ does not see an improvement in the validation accuracy for more than `--step` epochs. Input images are of size 224. In addition it saves intermediate results to `--tensorboard`.
   + when debugging you can add the `--short-run` argument which performs training and validation epochs of 10 mini-batches. This allows testing your entire pipeline before launching an experiment
   + if you want to resume a previously paused experiment you can use the `--resume` flag which can continue the training from _best_, _latest_ or a specifically designated epoch.
   + if you want to use your model only for evaluation on the test set, add the `--test` flag.
-  + when using _resnet_ you should upsample the input images to ensure compatibility. To this end set `--crop-size 64`
  
 ## Output
 For each experiment a folder with the same name is created in the folder `root-dir/gtsrb/runs`
