@@ -16,8 +16,8 @@ def get_criterion(args, class_weights=None):
             'nll': nn.NLLLoss(ignore_index=255),
             'bce': nn.BCELoss(),
             'focal': FocalLoss(ignore_index=255),
-            'mse': nn.MSELoss(reduction='elementwise_mean'), 
-            'l1': nn.L1Loss(reduction='elementwise_mean'), 
+            'mse': nn.MSELoss(reduction='mean'), 
+            'l1': nn.L1Loss(reduction='mean'), 
         }[args.criterion]
         
     else:

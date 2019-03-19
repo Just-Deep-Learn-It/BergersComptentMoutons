@@ -35,8 +35,8 @@ def init_logger(args, model):
     # set loggers
     exp_name = args.name
     exp_logger = logger.Experiment(exp_name, args.__dict__)
-    exp_logger.add_meters('train', metrics.make_meters(args.num_classes))
-    exp_logger.add_meters('val', metrics.make_meters(args.num_classes))
+    exp_logger.add_meters('train', metrics.make_meters())
+    exp_logger.add_meters('val', metrics.make_meters())
     exp_logger.add_meters('hyperparams', {'learning_rate': metrics.ValueMeter()})
     return exp_logger
 
@@ -104,20 +104,11 @@ def load_checkpoint(args, model):
 
 
 
-def generate_plots(args, logger, confusion_mat=None, is_best=False, classnames=[]):
+def generate_plots(args, logger, is_best=False, classnames=[]):
     plotter.save_plot(args, logger,tags=['train', 'val'], name='loss', title='loss curves', labels=['train', 'val'] )
-    plotter.save_plot(args, logger,tags=['train', 'val'], name='acc1', title='accuracy (top1)', labels=['train', 'val'])
-    plotter.save_plot(args, logger,tags=['val'], name='mAP', title='Mean Average Precision', labels=['val mAP'])
-    plotter.save_plot(args, logger,tags=['val'], name='acc_class', title='Accuracy per class', labels=['val acc class'])
-    plotter.save_plot(args, logger,tags=['val'], name='meanIoU', title='meanIoU', labels=['val meanIoU'])
-    plotter.save_plot(args, logger,tags=['val'], name='fwavacc', title='fwavacc', labels=['val fwavacc'])
+    plotter.save_plot(args, logger,tags=['train', 'val'], name='squared_mse', title='squared_mse', labels=['train', 'val'])
+    plotter.save_plot(args, logger,tags=['train', 'val'], name='mae', title='mae', labels=['train', 'val'])
     plotter.save_plot(args, logger,tags=['hyperparams'], name='learning_rate', title='Learning Rate', labels=['learning rate'])
-
-    if confusion_mat is not None:
-        out_fn = os.path.join(args.log_dir, 'pics', '{}_{}.png'.format(args.name, 'confusion_matrix'))
-        plotter.plot_confusion_matrix(confusion_mat, classnames=classnames,out_fn=out_fn)
-        plotter.save_as_best(is_best, out_fn)
-        plotter.save_as_best(is_best, out_fn=os.path.join(args.log_dir,'pics', '{}_watch_mosaic_pred_labels.jpg'.format(args.name)), extension='jpg')
 
 
 '''
@@ -152,10 +143,9 @@ def main():
 
     # init data loaders
     loader = get_loader(args)
-    train_loader = torch.utils.data.DataLoader(loader(data_dir=args.data_dir,split='train', 
+    train_loader = torch.utils.data.DataLoader(loader(path_to_data=args.data_dir, mode='TRAIN'), 
         batch_size=args.batch_size, shuffle=True, num_workers=args.workers, pin_memory=True)
-    val_loader = torch.utils.data.DataLoader(loader(data_dir=args.data_dir, split='val',
-        phase='test', out_name=True, num_classes=args.num_classes), batch_size=args.batch_size,
+    val_loader = torch.utils.data.DataLoader(loader(path_to_data=args.data_dir, mode='VAL')), batch_size=args.batch_size,
         shuffle=False, num_workers=args.workers, pin_memory=True)
 
     exp_logger, lr = None, None
@@ -182,8 +172,7 @@ def main():
     criterion.to(args.device)
 
     if args.test:
-        test_loader = torch.utils.data.DataLoader(loader(data_dir=args.data_dir, split='test', 
-            phase='test', out_name=True, num_classes=args.num_classes), batch_size=args.batch_size,
+        test_loader = torch.utils.data.DataLoader(loader(path_to_data=args.data_dir, mode='TEST'), batch_size=args.batch_size,
             shuffle=False, num_workers=args.workers, pin_memory=True)
         trainer.test(args, test_loader, model, criterion, args.start_epoch, 
             eval_score=metrics.accuracy_regression, output_dir=args.out_pred_dir, has_gt=True)

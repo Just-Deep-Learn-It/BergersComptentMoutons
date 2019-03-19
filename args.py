@@ -9,16 +9,16 @@ def parse_args():
 
     #  experiment settings
     # name of the experiment
-    parser.add_argument('--name', default='gtrb_resnet', type=str,
+    parser.add_argument('--name', default='csrnet', type=str,
                         help='name of experiment')
     # name of dataset used in the experiment, e.g. gtsrd
-    parser.add_argument('--dataset', default='gtsrb', type=str,
+    parser.add_argument('--dataset', default='shanghaitech', type=str,
                         help='name of dataset to train upon')
     parser.add_argument('--test', dest='test', action='store_true', default=False,
                         help='To only run inference on test set')
 
     # main folder for data storage
-    parser.add_argument('--root-dir', type=str, default=None)
+    parser.add_argument('--root-dir', type=str, default='/home/aymen/Desktop/EA/ShanghaiTech/part_A/')
    
     # model settings
     parser.add_argument('--arch', type=str,
@@ -31,10 +31,6 @@ def parse_args():
                         default=False, help='use pre-trained model')
 
     # data settings
-    parser.add_argument('--num-classes', default=0, type=int)
-    parser.add_argument('--input-channels', default=3, type=int)
-    # size of images to be fed to the CNN
-    parser.add_argument('-s', '--crop-size', default=0, type=int)
     # number of workers for the dataloader
     parser.add_argument('-j', '--workers', type=int, default=4)
 
@@ -45,11 +41,11 @@ def parse_args():
                         help='input batch size for training (default: 4)')
     parser.add_argument('--epochs', type=int, default=70, metavar='N',
                         help='number of epochs to train (default: 70)')
-    parser.add_argument('--optimizer', default='sgd', type=str,
+    parser.add_argument('--optimizer', default='adam', type=str,
                         help='name of the optimizer')
     parser.add_argument('--scheduler', default='StepLR', type=str,
                         help='name of the learning rate scheduler')
-    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+    parser.add_argument('--lr', type=float, default=1e-6, metavar='LR',
                         help='learning rate (default: 0.01)')
     parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                         help='sgd momentum (default: 0.9)')
@@ -57,10 +53,8 @@ def parse_args():
                         metavar='W', help='weight decay (default: 1e-4)')
     parser.add_argument('--lr-decay', default=0.995, type=float,
                         metavar='lrd', help='learning rate decay (default: 0.995)')
-    parser.add_argument('--criterion', default='nll', type=str,
+    parser.add_argument('--criterion', default='mse', type=str,
                         help='criterion to optimize')
-    parser.add_argument('--class-balance', default=None, type=str,
-                        help='class balancing scheme')
     # misc settings
     parser.add_argument('--seed', type=int, default=42, metavar='S',
                         help='random seed (default: 42)')
@@ -74,7 +68,7 @@ def parse_args():
     args = parser.parse_args()
 
     # update args
-    args.data_dir = '{}/{}'.format(args.root_dir, args.dataset)
+    args.data_dir = args.root_dir #'{}/{}'.format(args.root_dir, args.dataset) #'/home/aymen/Desktop/EA/ShanghaiTech/part_A/'
     args.log_dir = '{}/runs/{}/'.format(args.data_dir, args.name)
     args.res_dir = '%s/runs/%s/res' % (args.data_dir, args.name)
     args.out_pred_dir = '%s/runs/%s/pred' % (args.data_dir, args.name)

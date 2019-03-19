@@ -1,6 +1,6 @@
 import json
 
-from loaders.gtsrb_loader import GTSRBLoader
+from loaders.shanghaitech_loader import ShanghaiTechLoader
 
 
 def get_loader(args):
@@ -9,6 +9,6 @@ def get_loader(args):
     :param name:
     """
     return {
-        'shanghaitech_loader' : ShanghaiTechLoader,
+        'shanghaitech' : ShanghaiTechLoader,
         # feel free to add new datasets here
     }[args.dataset]

@@ -11,7 +11,7 @@ from PIL import Image
 
 class ShanghaiTechLoader(torch.utils.data.Dataset):
 
-    def __init__(self, path_to_data=data_path, mode='TRAIN', transform=None, target_transform=None):
+    def __init__(self, path_to_data, mode='TRAIN', transform=None, target_transform=None):
         
         self.transform = transform
         self.target_transform = target_transform

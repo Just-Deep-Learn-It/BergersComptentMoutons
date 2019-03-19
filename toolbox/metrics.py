@@ -74,7 +74,7 @@ class ValueMeter(object):
 
 
 
-def make_meters(num_classes=2):
+def make_meters():
     meters_dict = {
         'loss': AverageMeter(),
         'squared_mse': AverageMeter(),
@@ -120,24 +120,6 @@ def evaluate(hist):
     freq = hist.sum(axis=1) / (hist.sum()+ 1e-10)
     fwavacc = (freq[freq > 0] * iu[freq > 0]).sum()
     return acc, acc_cls, mean_iu, fwavacc
-
-
-def accuracy_classif(output, target, topk=1):
-    """Computes the precision@k for the specified values of k"""
-    maxk = 1
-    # maxk = max(topk)
-    batch_size = target.size(0)
-
-    _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-    # res = []
-    correct_k = correct[:maxk].view(-1).float().sum(0)
-    correct_k.mul_(1.0 / batch_size)
-    res = correct_k.clone()
-
-    return res.item(), pred, target
 
 
 def accuracy_regression(output, target):
