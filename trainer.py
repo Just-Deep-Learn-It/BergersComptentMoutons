@@ -30,10 +30,11 @@ def train(args, train_loader, model, criterion, optimizer, logger, epoch,
     for i, (input, target) in enumerate(train_loader):
         # print(f'{i} - {input.size()} - {target.size()}')
         batch_size = input.size(0)
-
+        #count=target[0]
+        target=target[1]
         # measure data loading time
         meters['data_time'].update(time.time() - end, n=batch_size)
-       
+        #print("DEBUGG=",target)
         input, target = input.to(args.device).requires_grad_(), target.to(args.device)
         output = model(input)
 

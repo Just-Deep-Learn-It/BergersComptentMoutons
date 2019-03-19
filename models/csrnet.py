@@ -31,6 +31,7 @@ class CSRNet(nn.Module):
         
     def forward(self,x):
         for model in self.features:
+            model=model.double()
             x = model(x)
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
@@ -46,7 +47,7 @@ def csrnet0():
     model = CSRNet()
     return model
 
-def csrnet(model_name, input_channels, pretrained=False):
+def csrnet(model_name, pretrained=False):
     return{
         'csrnet': csrnet0(),
 }[model_name]

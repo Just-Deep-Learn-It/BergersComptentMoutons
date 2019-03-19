@@ -152,7 +152,6 @@ def main():
 
     model = get_model(args)
     criterion = losses.get_criterion(args)
-
     # optionally resume from a checkpoint
     if args.resume:
         model, exp_logger, args.start_epoch, best_score, best_epoch, lr = load_checkpoint(args, model)
@@ -160,7 +159,6 @@ def main():
     else:
         # create all output folders 
         utils.init_output_env(args)
-
     if exp_logger is None:
         exp_logger = init_logger(args, model)
 
