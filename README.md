@@ -1,11 +1,5 @@
 # CSRNet
 
-#script part for cropping is in Generating_ground_truth_density.ipynb
-#still didn't crop the test set ( script to be modified)
-# Still didn't set aside the 10% validation set
-#Will try to do the training tonight
-P.S: Au bout de plusieurs tutos opencv, oui j'ai dû basculer en anglais ;)
-
 ## Data
 The original ShanghaiTech datasets consists of large `.ppm` images of scenes with bounding box coordinates for the traffic signs. We use here a post-processed variant where signs have already been cropped out from their corresponding images and resized to 32 x 32. 
 
