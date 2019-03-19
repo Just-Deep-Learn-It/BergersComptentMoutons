@@ -104,11 +104,11 @@ def load_checkpoint(args, model):
 
 
 
-def generate_plots(args, logger, is_best=False, classnames=[]):
-    plotter.save_plot(args, logger,tags=['train', 'val'], name='loss', title='loss curves', labels=['train', 'val'] )
-    plotter.save_plot(args, logger,tags=['train', 'val'], name='squared_mse', title='squared_mse', labels=['train', 'val'])
-    plotter.save_plot(args, logger,tags=['train', 'val'], name='mae', title='mae', labels=['train', 'val'])
-    plotter.save_plot(args, logger,tags=['hyperparams'], name='learning_rate', title='Learning Rate', labels=['learning rate'])
+def generate_plots(args, logger, is_best=False):
+    plotter.save_plot(args, logger, tags=['train', 'val'], name='loss', title='loss curves', labels=['train', 'val'] )
+    plotter.save_plot(args, logger, tags=['train', 'val'], name='squared_mse', title='squared_mse', labels=['train', 'val'])
+    plotter.save_plot(args, logger, tags=['train', 'val'], name='mae', title='mae', labels=['train', 'val'])
+    plotter.save_plot(args, logger, tags=['hyperparams'], name='learning_rate', title='Learning Rate', labels=['learning rate'])
 
 
 '''
@@ -145,7 +145,7 @@ def main():
     loader = get_loader(args)
     train_loader = torch.utils.data.DataLoader(loader(path_to_data=args.data_dir, mode='TRAIN'), 
         batch_size=args.batch_size, shuffle=True, num_workers=args.workers, pin_memory=True)
-    val_loader = torch.utils.data.DataLoader(loader(path_to_data=args.data_dir, mode='VAL')), batch_size=args.batch_size,
+    val_loader = torch.utils.data.DataLoader(loader(path_to_data=args.data_dir, mode='VAL'), batch_size=args.batch_size,
         shuffle=False, num_workers=args.workers, pin_memory=True)
 
     exp_logger, lr = None, None
@@ -186,7 +186,7 @@ def main():
               eval_score=metrics.accuracy_regression, tb_writer=tb_writer)
          
         # evaluate on validation set
-        mAP, val_loss, res_list = trainer.validate(args, val_loader, model, criterion, exp_logger, epoch, eval_score=metrics.accuracy_regression, tb_writer=tb_writer)
+        val_mae, val_squared_mse, val_loss = trainer.validate(args, val_loader, model, criterion, exp_logger, epoch, eval_score=metrics.accuracy_regression, tb_writer=tb_writer)
 
         # update learning rate
         if scheduler is None:
@@ -202,8 +202,8 @@ def main():
 
 
         # remember best acc and save checkpoint
-        is_best = mAP > best_score
-        best_score = max(mAP, best_score)
+        is_best = val_mae < best_score
+        best_score = min(val_mae, best_score)
         if True == is_best:
             best_epoch = epoch
 
@@ -213,11 +213,10 @@ def main():
             'best_score': best_score,
             'best_epoch': best_epoch,
             'exp_logger': exp_logger,
-            'res_list': res_list,
         }, is_best)
 
         # write plots to disk
-        generate_plots(args, exp_logger, confusion_mat=exp_logger.meters['val']['confusion_matrix'].conf, is_best=is_best, classnames=val_loader.dataset.classnames)
+        generate_plots(args, exp_logger, is_best=is_best)
 
         # generate html report
         logger.export_logs(args, epoch, best_epoch)

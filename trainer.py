@@ -27,17 +27,17 @@ def train(args, train_loader, model, criterion, optimizer, logger, epoch,
     meters_params['learning_rate'].update(optimizer.param_groups[0]['lr'])
     end = time.time()
 
-    for i, (input, target_class) in enumerate(train_loader):
-        # print(f'{i} - {input.size()} - {target_class.size()}')
+    for i, (input, target) in enumerate(train_loader):
+        # print(f'{i} - {input.size()} - {target.size()}')
         batch_size = input.size(0)
 
         # measure data loading time
         meters['data_time'].update(time.time() - end, n=batch_size)
        
-        input, target_class = input.to(args.device).requires_grad_(), target_class.to(args.device)
+        input, target = input.to(args.device).requires_grad_(), target.to(args.device)
         output = model(input)
 
-        loss = criterion(output, target_class)
+        loss = criterion(output, target)
         
         meters['loss'].update(loss.data.item(), n=batch_size)
         
@@ -48,9 +48,9 @@ def train(args, train_loader, model, criterion, optimizer, logger, epoch,
 
         # measure accuracy and record loss
         if eval_score is not None:
-            mae, mse, label = eval_score(output, target)
-            meters['mae'].update(mse, n=batch_size)
-            meters['mse'].update(mae,n=batch_size)
+            mae, squared_mse, count = eval_score(output, target)
+            meters['mae'].update(mae, n=batch_size)
+            meters['squared_mse'].update(squared_mse,n=batch_size)
 
 
         # measure elapsed time
@@ -63,9 +63,10 @@ def train(args, train_loader, model, criterion, optimizer, logger, epoch,
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'LR {lr.val:.2e}\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Acc@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
+                  'mae {mae.val:.3f} ({mae.avg:.3f})\t'
+                  'squared_mse {squared_mse.val:.3f} ({squared_mse.avg:.3f})'.format(
                    epoch, i, len(train_loader), batch_time=meters['batch_time'],
-                   data_time=meters['data_time'], lr=meters_params['learning_rate'], loss=meters['loss'], top1=meters['acc1']))
+                   data_time=meters['data_time'], lr=meters_params['learning_rate'], loss=meters['loss'], mae=meters['mae'], squared_mse=meters['squared_mse']))
 
 
         if True == args.short_run:
@@ -75,7 +76,8 @@ def train(args, train_loader, model, criterion, optimizer, logger, epoch,
 
    
     if args.tensorboard:
-        tb_writer.add_scalar('acc1/train', meters['acc1'].avg, epoch)
+        tb_writer.add_scalar('mae/train', meters['mae'].avg, epoch)
+        tb_writer.add_scalar('squared_mse/train', meters['squared_mse'].avg, epoch)
         tb_writer.add_scalar('loss/train', meters['loss'].avg, epoch)
         tb_writer.add_scalar('learning rate', meters_params['learning_rate'].val, epoch)
        
@@ -100,89 +102,61 @@ def validate(args, val_loader, model, criterion, logger, epoch, eval_score=None,
     model.eval()
     meters = logger.reset_meters('val')
     end = time.time()
-    hist = np.zeros((args.num_classes, args.num_classes))
-    res_list = {}
     grid_pred = None
     with torch.no_grad():
-        for i, (input, target_class, name) in enumerate(val_loader):
+        for i, (input, target) in enumerate(val_loader):
             batch_size = input.size(0)
 
             meters['data_time'].update(time.time()-end, n=batch_size)
-
-            label = target_class.numpy()
         
-            input, target_class = input.to(args.device).requires_grad_(), target_class.to(args.device)
+            input, target = input.to(args.device).requires_grad_(), target.to(args.device)
             
             output = model(input)
 
-            loss = criterion(output, target_class)
+            loss = criterion(output, target)
             meters['loss'].update(loss.data.item(), n=batch_size)
 
             # measure accuracy and record loss
             if eval_score is not None:
-                acc1, pred, buff_label = eval_score(output, target_class)
-                meters['acc1'].update(acc1, n=batch_size)
-                meters['confusion_matrix'].update(pred.squeeze(), buff_label.type(torch.LongTensor))
+                mae, squared_mse, count = eval_score(output, target)
+                meters['mae'].update(mae, n=batch_size)
+                meters['squared_mse'].update(squared_mse,n=batch_size)
 
-                _, pred = torch.max(output, 1)
 
-                for idx, curr_name in enumerate(name):
-                    res_list[curr_name] = [pred[idx].item(), target_class[idx].item()]
-
-                pred = pred.to('cpu').data.numpy()
-                hist += metrics.fast_hist(pred.flatten(), label.flatten(), args.num_classes)
-                mean_ap = round(np.nanmean(metrics.per_class_iu(hist)) * 100, 2)
-                meters['mAP'].update(mean_ap, n=batch_size)
 
             # measure elapsed time
             end = time.time()
             meters['batch_time'].update(time.time() - end, n=batch_size)
 
-            # save samples from first mini-batch for qualitative visualization
-            if i == 0:
-               utils.save_res_grid(input.detach().clone(), val_loader, pred, 
-                        target_class.to('cpu').clone(), 
-                        out_fn=os.path.join(args.log_dir,'pics', '{}_watch_mosaic_pred_labels.jpg'.format(args.name)))
-
-
+          
             if i % print_freq == 0:
-                print('Validation: [{0}/{1}]\t'
+                print('Epoch: [{0}][{1}/{2}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                      'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                      'LR {lr.val:.2e}\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Acc@1 {score.val:.3f} ({score.avg:.3f})'.format(
-                      i, len(val_loader), batch_time=meters['batch_time'], loss=meters['loss'],
-                      score=meters['acc1']), flush=True)
+                      'MAE {mae.val:.3f} ({mae.avg:.3f})\t'
+                      'Squared MSE {squared_mse.val:.3f} ({squared_mse.avg:.3f})'.format(
+                       epoch, i, len(train_loader), batch_time=meters['batch_time'],
+                       data_time=meters['data_time'], lr=meters_params['learning_rate'], loss=meters['loss'], mae=meters['mae'], squared_mse=meters['squared_mse']))
+
 
             if True == args.short_run:
                 if 12 == i:
                     print(' --- running in short-run mode: leaving epoch earlier ---')
                     break    
 
-    
-    acc, acc_cls, mean_iu, fwavacc = metrics.evaluate(hist)
-    meters['acc_class'].update(acc_cls)
-    meters['meanIoU'].update(mean_iu)
-    meters['fwavacc'].update(fwavacc)
 
-    print(' * Validation set: Average loss {:.4f}, Accuracy {:.3f}%, Accuracy per class {:.3f}%, meanIoU {:.3f}%, \
-            fwavacc {:.3f}% \n'.format(meters['loss'].avg, meters['acc1'].avg, meters['acc_class'].val,
-                                       meters['meanIoU'].val, meters['fwavacc'].val ))
+
+    print(' * Validation set: Average loss {:.4f}, MAE {:.3f}%, Squared MSE {:.3f}% \n'.format(meters['loss'].avg, meters['mae'].avg, meters['squared_mse'].avg))
 
     logger.log_meters('val', n=epoch)
-    
-    utils.save_res_list(res_list, os.path.join(args.res_dir, 'val_results_list_ep{}.json'.format(epoch)))
         
     if args.tensorboard:
-        tb_writer.add_scalar('acc1/val', meters['acc1'].avg, epoch)
+        tb_writer.add_scalar('mae/val', meters['mae'].avg, epoch)
+        tb_writer.add_scalar('squared_mse/val', meters['squared_mse'].avg, epoch)
         tb_writer.add_scalar('loss/val', meters['loss'].avg, epoch)
-        tb_writer.add_scalar('mAP/val', meters['mAP'].avg, epoch)
-        tb_writer.add_scalar('acc_class/val', meters['acc_class'].val, epoch)
-        tb_writer.add_scalar('meanIoU/val', meters['meanIoU'].val, epoch)
-        tb_writer.add_scalar('fwavacc/val', meters['fwavacc'].val, epoch)
-        im = imageio.imread('{}'.format(os.path.join(args.log_dir,'pics', '{}_watch_mosaic_pred_labels.jpg'.format(args.name))))
-        tb_writer.add_image('Image', im.transpose((2, 0, 1)), epoch)
-        
-    return meters['mAP'].val, meters['loss'].avg, res_list
+    return meters['mae'].val, meters['squared_mse'].val, meters['loss'].avg
 
 
 '''
@@ -199,40 +173,27 @@ def test(args, eval_data_loader, model, criterion, epoch, eval_score=None,
          output_dir='pred', has_gt=True, print_freq=10):
 
     model.eval()
-    meters = metrics.make_meters(args.num_classes)
+    meters = metrics.make_meters()
     end = time.time()
-    hist = np.zeros((args.num_classes, args.num_classes))
-    res_list = {}
     with torch.no_grad():
-        for i, (input, target_class, name) in enumerate(eval_data_loader):
+        for i, (input, target) in enumerate(eval_data_loader):
             # print(input.size())
             batch_size = input.size(0)
             meters['data_time'].update(time.time()-end, n=batch_size)
            
-            label = target_class.numpy()
-            input, target_class = input.to(args.device).requires_grad_(), target_class.to(args.device)
+            input, target = input.to(args.device).requires_grad_(), target.to(args.device)
             
             output = model(input)
 
-            loss = criterion(output, target_class)
+            loss = criterion(output, target)
             
             meters['loss'].update(loss.data.item(), n=batch_size)
 
             # measure accuracy and record loss
             if eval_score is not None:
-                acc1, pred, buff_label = eval_score(output, target_class)
-                meters['acc1'].update(acc1, n=batch_size)
-                meters['confusion_matrix'].update(pred.squeeze(), buff_label.type(torch.LongTensor))
-
-                _, pred = torch.max(output, 1)
-                pred = pred.cpu().data.numpy()
-                hist += metrics.fast_hist(pred.flatten(), label.flatten(), args.num_classes)
-                mean_ap = round(np.nanmean(metrics.per_class_iu(hist)) * 100, 2)
-                meters['mAP'].update(mean_ap, n=batch_size)
-
-
-                for idx, curr_name in enumerate(name):
-                    res_list[curr_name] = [pred[idx].item(), target_class[idx].item()]
+                mae, squared_mse, count = eval_score(output, target)
+                meters['mae'].update(mae, n=batch_size)
+                meters['squared_mse'].update(squared_mse, n=batch_size)
 
             end = time.time()
             meters['batch_time'].update(time.time() - end, n=batch_size)
@@ -241,9 +202,10 @@ def test(args, eval_data_loader, model, criterion, epoch, eval_score=None,
             print('Testing: [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Acc@1 {score.val:.3f} ({score.avg:.3f})'.format(
+                      'MAE {mae.val:.3f} ({mae.avg:.3f})\t'
+                      'Squared MSE {squared_mse.val:.3f} ({squared_mse.avg:.3f})'.format(
                       i, len(eval_data_loader), batch_time=meters['batch_time'], loss=meters['loss'],
-                      score=meters['acc1']), flush=True)
+                      mae=meters['mae'],squared_mse=meters['squared_mse']), flush=True)
 
             if True == args.short_run:
                 if 12 == i:
@@ -251,13 +213,7 @@ def test(args, eval_data_loader, model, criterion, epoch, eval_score=None,
                     break    
 
 
-    if eval_score is not None:
-        acc, acc_cls, mean_iu, fwavacc = metrics.evaluate(hist)
-        meters['acc_class'].update(acc_cls)
-        meters['meanIoU'].update(mean_iu)
-        meters['fwavacc'].update(fwavacc)
-
-        print(' * Test set: Average loss {:.4f}, Accuracy {:.3f}%, Accuracy per class {:.3f}%, meanIoU {:.3f}%, fwavacc {:.3f}% \n'.format(meters['loss'].avg, meters['acc1'].avg, meters['acc_class'].val, meters['meanIoU'].val, meters['fwavacc'].val ))
+        print(' * Test set: Average loss {:.4f}, MAE {:.3f}%, Squared MSE {:.3f}% \n'.format(meters['loss'].avg, meters['mae'].avg, meters['squared_mse'].avg))
 
     metrics.save_meters(meters, os.path.join(args.log_dir, 'test_results_ep{}.json'.format(epoch)), epoch)    
     utils.save_res_list(res_list, os.path.join(args.res_dir, 'test_results_list_ep{}.json'.format(epoch)))    

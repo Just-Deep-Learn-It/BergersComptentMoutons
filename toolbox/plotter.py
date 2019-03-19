@@ -67,39 +67,3 @@ def save_as_best(is_best, out_fn, extension='png'):
         shutil.copyfile(out_fn, out_fn.replace(f'.{extension}', f'_best.{extension}'))
 
 
-def plot_confusion_matrix(cm, classnames, out_fn,
-                          normalize=False,
-                          title='Confusion matrix',
-                          cmap=plt.cm.Blues):
-    """
-    This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
-    """
-
-    # classnames =  np.array(classnames)    
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
-    else:
-        print('Confusion matrix, without normalization')
-
-    fig, ax = plt.subplots()
-    plt.imshow(cm, interpolation='nearest', cmap=cmap, shape=(15000,15000),extent=[0, len(classnames), len(classnames), 0])
-    plt.title(title)
-    plt.colorbar()
-    plt.grid(True)
-    tick_marks = np.arange(len(classnames))
-    # plt.xticks(tick_marks, classnames, rotation=90)
-    # plt.yticks(tick_marks, classnames)
-
-    ax.set_xticks(tick_marks)
-    ax.set_xticklabels(classnames, rotation=90, fontsize=5)
-    ax.set_yticks(tick_marks)
-    ax.set_yticklabels(classnames, fontsize=5)
-
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    print(f'saving plot to {out_fn}')
-    plt.savefig(out_fn, bbox_inches='tight', dpi=300)
-    plt.gcf().clear()
-    plt.close()    

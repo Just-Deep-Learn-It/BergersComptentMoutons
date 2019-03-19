@@ -78,9 +78,7 @@ def make_meters():
     meters_dict = {
         'loss': AverageMeter(),
         'squared_mse': AverageMeter(),
-        'mae':AverageMeter()
-        'acc_class': ValueMeter(),
-        'fwavacc': ValueMeter(),
+        'mae':AverageMeter(),
         'batch_time': AverageMeter(),
         'data_time': AverageMeter(),
         'epoch_time': SumMeter(),
@@ -111,22 +109,14 @@ o.  )88b 888   .o8 888   888  888     888    .o o.  )88b
 8""888P' `Y8bod8P' `Y8bod8P' d888b    `Y8bod8P' 8""888P'
 '''
 
-def evaluate(hist):
-    acc = np.diag(hist).sum() / hist.sum()
-    acc_cls = np.diag(hist) / hist.sum(axis=1)
-    acc_cls = np.nanmean(acc_cls)
-    iu = np.diag(hist) / (hist.sum(axis=1) + hist.sum(axis=0) - np.diag(hist)+1e-10)
-    mean_iu = np.nanmean(iu)
-    freq = hist.sum(axis=1) / (hist.sum()+ 1e-10)
-    fwavacc = (freq[freq > 0] * iu[freq > 0]).sum()
-    return acc, acc_cls, mean_iu, fwavacc
 
 
 def accuracy_regression(output, target):
-    mae_mean = (output - target).abs().mean()
-    mse_mean = (output - target).pow(2).mean()
-    rmse = (output - target).pow(2).mean().sqrt()
-    return mae_mean.item(), mse_mean.item(), rmse_mean.item()
+    mae = (output - target).sum().abs().mean() 
+    squared_mse = (output - target).sum().pow(2).mean()
+    #mse = (output - target).sum().pow(2).mean().sqrt()
+    count = output.sum()
+    return mae.item(), squared_mse.item(), count.item()
 
 
 def fast_hist(pred, label, n):
